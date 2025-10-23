@@ -16,7 +16,6 @@ interface RegionAlertState {
 @Injectable({ providedIn: 'root' })
 export class RegionAlertService {
   private regionStates = new Map<string, RegionAlertState>();
-  private audio: HTMLAudioElement;
 
   // cache des resourceSets zones_alert (format : [id, resourceObj, true])
   private customRegionsCache: any[] = [];
@@ -28,8 +27,6 @@ export class RegionAlertService {
     private notiMgr: NotificationManager,
     private customRegionsService: CustomRegionsService
   ) {
-    this.audio = new Audio();
-    this.audio.src = 'assets/sounds/ding.mp3';
 
     // Charger les resourceSets custom dès que possible (non bloquant)
     try {
@@ -363,33 +360,38 @@ export class RegionAlertService {
     console.log(`%cÉtape 5: !!! DÉCLENCHEMENT ALERTE POUR ${regionName} !!!`, 'color: red; font-size: 1.2em; font-weight: bold;');
     const message = `Entering region: ${regionName}`;
 
-    this.notiMgr.raiseServerAlarm('region', message);
+    // Créer une alerte locale avec son activé
+    const alert: any = {
+      path: `region.${regionId}`,
+      priority: 'warn', // ou 'warn'
+      message: message,
+      sound: true, // Important : activer le son
+      visual: true,
+      acknowledged: false,
+      silenced: false,
+      type: 'region',
+      canAcknowledge: true,
+      canCancel: true,
+      properties: {
+        regionId: regionId,
+        regionName: regionName
+      },
+      icon: {
+        class: undefined,
+        svgIcon: 'warning-unack-iec',
+        name: undefined
+      },
+      createdAt: Date.now()
+    };
 
-    if ((this.app as any).config?.notifications?.sound) {
-      this.playAlertSound();
-    }
-
-    if ('Notification' in window && (Notification as any).permission === 'granted') {
-      new Notification('Region Alert', {
-        body: message,
-        icon: 'assets/icon-512x512.png',
-      });
-    }
+    // Utiliser createLocalAlert du NotificationManager pour gérer le son
+    this.notiMgr.createLocalAlert(`region.${regionId}`, alert);
   }
 
   private clearAlert(regionId: string) {
     this.notiMgr.clear(`region.${regionId}`);
-  }
-
-  private playAlertSound() {
-    try {
-      this.audio.currentTime = 0;
-      this.audio
-        .play()
-        .catch((err) => console.warn('Could not play alert sound:', err));
-    } catch (error) {
-      console.error('Error playing alert sound:', error);
-    }
+    // Arrêter le son si nécessaire
+    this.notiMgr.stopSoundImmediately();
   }
 
   reset() {

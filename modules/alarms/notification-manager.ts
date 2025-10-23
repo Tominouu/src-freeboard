@@ -331,6 +331,58 @@ export class NotificationManager {
       .subscribe(
         () => undefined,
         (err: HttpErrorResponse) => {
+          // Si le serveur ne supporte pas ce type d'alarme (404), on crée une alerte locale de secours
+          if (err.status === 404) {
+            console.warn(`Server alarm endpoint for '${alarmType}' not found — creating local fallback alert`);
+
+            try {
+              // Générer un ID local unique
+              const id = `${alarmType}.${Date.now()}`;
+              const now = Date.now();
+
+              // Construire une alerte minimale conforme à AlertData utilisée par l'UI
+              const fallbackAlert: any = {
+                path: id,
+                priority: 2, // priorité par défaut (ajuste si besoin)
+                message: message ?? '',
+                sound: true,
+                visual: true,
+                properties: {
+                  // si tu veux ajouter une position par défaut, le faire ici
+                },
+                icon: { svgIcon: 'alarm' },
+                type: alarmType,
+                acknowledged: false,
+                silenced: false,
+                // IMPORTANT: canCancel false pour que clear() supprime localement (pas d'appel serveur)
+                canAcknowledge: false,
+                canCancel: false,
+                createdAt: now
+              };
+
+              // alertMap est utilisé ailleurs dans NotificationManager — on insère l'alerte locale
+              // (si alertMap n'existe pas pour une raison X, on le crée localement)
+              if (!(this as any).alertMap) {
+                (this as any).alertMap = new Map<string, any>();
+              }
+
+              (this as any).alertMap.set(id, fallbackAlert);
+
+              // Émettre la mise à jour pour que l'UI se rafraîchisse
+              if (typeof (this as any).emitSignals === 'function') {
+                (this as any).emitSignals();
+              } else {
+                // fallback: logger
+                console.debug('Fallback alert added but emitSignals not found.');
+              }
+            } catch (e) {
+              console.error('Failed to add fallback alert locally:', e);
+            }
+
+            return;
+          }
+
+          // comportement existant : afficher une erreur (pour autres statuts)
           this.app.showAlert(
             'Error',
             `Unable to raise alarm: ${alarmType} \n ${err.message}`

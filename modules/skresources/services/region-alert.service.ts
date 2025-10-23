@@ -29,7 +29,7 @@ export class RegionAlertService {
     private customRegionsService: CustomRegionsService
   ) {
     this.audio = new Audio();
-    this.audio.src = 'assets/sounds/alert.mp3';
+    this.audio.src = 'assets/sounds/ding.mp3';
 
     // Charger les resourceSets custom dès que possible (non bloquant)
     try {

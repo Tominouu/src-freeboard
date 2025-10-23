@@ -38,14 +38,14 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
           <mat-icon class="icon-region">tab_unselected</mat-icon>
         </div>
         <div>
-          <h1 mat-dialog-title>Region Details</h1>
+          <h1 mat-dialog-title>Détails de la région</h1>
         </div>
       </div>
 
       <mat-dialog-content>
         <div style="padding-left: 10px;">
           <mat-form-field floatLabel="always">
-            <mat-label>Name</mat-label>
+            <mat-label>Nom</mat-label>
             <input
               matInput
               #inpname="ngModel"
@@ -55,7 +55,7 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
               [(ngModel)]="name"
             />
             @if(inpname.invalid && (inpname.dirty || inpname.touched)) {
-            <mat-error> Please enter a name.</mat-error>
+            <mat-error> Veuillez entrer un nom.</mat-error>
             }
           </mat-form-field>
 
@@ -71,8 +71,8 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
           </mat-form-field>
 
           <div style="margin-top: 20px;">
-            <label style="display: block; margin-bottom: 8px; color: rgba(0,0,0,0.6); font-size: 12px;">
-              Color
+            <label style="display: block; margin-bottom: 8px; color: rgba(255, 255, 255, 1); font-size: 24px;">
+              Couleur
             </label>
             <input
               type="color"
@@ -98,10 +98,10 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
             [disabled]="inpname.invalid || readOnly"
             (click)="handleClose(true)"
           >
-            SAVE
+            ENREGISTRER
           </button>
           }
-          <button mat-raised-button (click)="handleClose(false)">CANCEL</button>
+          <button mat-raised-button (click)="handleClose(false)">ANNULER</button>
         </div>
       </mat-dialog-actions>
     </div>

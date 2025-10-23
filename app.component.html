@@ -173,7 +173,7 @@
       }
       <a mat-menu-item (click)="drawFeature('region')">
         <mat-icon>tab_unselected</mat-icon>
-        <span>Draw Region</span>
+        <span>Dessiner une région</span>
       </a>
     </mat-menu>
 
@@ -808,12 +808,12 @@
             @if(mapInteract.isDrawing()) {
             <div>
               <span style="font-weight: bold; padding: 5px">
-                <mat-icon>edit</mat-icon> Drawing Help:
+                <mat-icon>edit</mat-icon> Aide Dessin:
               </span>
               @if(mapInteract.draw.resourceType === 'waypoint' ||
               mapInteract.draw.resourceType === 'note') {
               <div style="padding: 5px">
-                Click on the Map where to drop the feature.
+                Cliquez sur la carte pour mettre la fonctionnalité.
               </div>
               } @if(mapInteract.draw.resourceType === 'region') {
               <div style="padding: 5px">
@@ -824,8 +824,8 @@
                     padding-inline-start: 15px;
                   "
                 >
-                  <li>Click on the Map to place a vertex of the Region.</li>
-                  <li>Click on the last point to end drawing.</li>
+                  <li>Cliquez sur la carte pour placer un sommet de la région.</li>
+                  <li>Cliquez sur le dernier point pour terminer le dessin.</li>
                 </ol>
               </div>
               }
@@ -860,12 +860,12 @@
                 mat-raised-button
                 (click)="closeInteraction()"
                 [matTooltip]="
-                  mapInteract.isModifying() ? 'Finish Editing' : 'Cancel Draw'
+                  mapInteract.isModifying() ? 'Finir la modification' : 'Annuler le dessin'
                 "
                 matTooltipPosition="left"
               >
-                <mat-icon class="icon-warn">close</mat-icon>
-                {{ mapInteract.isModifying() ? 'FINISH' : 'CANCEL' }}
+                <mat-icon class="icon-warn">fermer</mat-icon>
+                {{ mapInteract.isModifying() ? 'TERMINER' : 'ANNULER' }}
               </a>
             </div>
           </div>

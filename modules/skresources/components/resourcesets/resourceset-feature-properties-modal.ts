@@ -54,8 +54,8 @@ import { SKResourceSet } from '../../resourceset-class';
       <mat-card>
         <mat-card-content>
           <div style="padding-bottom: 5px; display: flex">
-            <div style="font-weight: bold; vertical-align: top">Name:</div>
-            <div style="padding-left: 10px">{{ properties.name }}</div>
+            <div style="font-weight: bold; vertical-align: top">Nom: </div>
+            <div style="flex: 1 1 auto;text-align: left;white-space: nowrap;overflow-x: auto;text-overflow: ellipsis;padding-left: 5px;">{{ properties.name }}</div>
           </div>
           <div style="font-weight: bold; vertical-align: top">Description:</div>
           <div style="overflow-y: auto; height: 60px" target="notelink">

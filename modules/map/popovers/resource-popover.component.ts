@@ -124,7 +124,7 @@ id: string - resource id
             [disabled]="this.ctrl.isReadOnly"
           >
             <mat-icon>delete</mat-icon>
-            DELETE
+            SUPPRIMER
           </button>
         </div>
         } @if(ctrl.canActivate && !ctrl.isActive) {
@@ -479,13 +479,13 @@ export class ResourcePopoverComponent {
       } }
       <div style="display:flex;flex-wrap: wrap;">
         <div class="popover-action-button">
-          <button mat-button (click)="emitDelete()" matTooltip="Delete Resource Set" matTooltipPosition="after">
+          <button mat-button (click)="emitDelete()" matTooltip="Supprimer la ressource" matTooltipPosition="after">
             <mat-icon>delete</mat-icon>
-            DELETE
+            SUPPRIMER
           </button>
         </div>
         <div class="popover-action-button">
-          <button mat-button (click)="emitInfo()" matTooltip="Show Properties" matTooltipPosition="after">
+          <button mat-button (click)="emitInfo()" matTooltip="Afficher les propriétés" matTooltipPosition="after">
             <mat-icon>info_outline</mat-icon>
             INFO
           </button>

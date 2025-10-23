@@ -1,208 +1,245 @@
-import { Injectable, signal } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject } from 'rxjs';
 import { MatBottomSheet } from '@angular/material/bottom-sheet';
-import {
-  PathValue,
-  Notification,
-  ALARM_METHOD,
-  ALARM_STATE
-} from '@signalk/server-api';
-import { NotificationMessage } from 'src/app/types';
 import { AppFacade } from 'src/app/app.facade';
-import { SKWorkerService } from '../skstream/skstream.service';
-import { AlertData } from './components/alert.component';
-import { getAlertIcon } from '../icons';
 import { SignalKClient } from 'signalk-client-angular';
-import { AlertPropertiesModal } from './components/alert-properties-modal';
+import { AlertData } from './components/alert.component';
 
-type AlertItems = Array<[string, AlertData]>;
-
+/**
+ * NotificationManager
+ *
+ * - Raise alarms on server (POST /signalk/v2/api/alarms/:type)
+ * - Fallback to creating a local alert if server does not support the endpoint (404)
+ * - Maintain a local alertMap of active alerts
+ * - Emit changes so UI can update
+ * - Play alert sound and show persistent desktop Notification while the alert remains active
+ */
 @Injectable({ providedIn: 'root' })
 export class NotificationManager {
-  private alertMap: Map<string, AlertData>;
+  // Internal storage of alerts (key -> AlertData)
+  private alertMap = new Map<string, AlertData>();
 
-  // signals
-  private alertsSignal = signal<AlertItems>([]);
-  readonly alerts = this.alertsSignal.asReadonly();
+  // Exposed observable for consumers (if needed)
+  private alertsSubject = new BehaviorSubject<Array<[string, AlertData]>>([]);
+  public alerts$ = this.alertsSubject.asObservable();
 
-  private mobSignal = signal<AlertItems>([]);
-  readonly mobAlerts = this.mobSignal.asReadonly();
+  // Audio element for alert sound
+  private audio: HTMLAudioElement;
 
   constructor(
     private app: AppFacade,
-    private worker: SKWorkerService,
     private signalk: SignalKClient,
     private bottomSheet: MatBottomSheet
   ) {
-    this.alertMap = new Map();
+    // Prepare audio element
+    this.audio = new Audio();
+    this.audio.src = 'assets/sounds/ding.mp3';
+    this.audio.preload = 'auto';
+    this.audio.load();
 
-    // ** SIGNAL K STREAM Message**
-    this.worker.notification$().subscribe((msg: NotificationMessage) => {
-      this.processMessage(msg);
-    });
-  }
-
-  /**
-   * @description Emit signals
-   */
-  private emitSignals() {
-    const rankings = {
-      emergency: 1,
-      alarm: 2,
-      warn: 3,
-      alert: 4,
-      normal: 5,
-      nominal: 6
-    };
-    // sort based on priority and time raised
-    const alerts = Array.from(this.alertMap).sort((a, b) => {
-      const ra = rankings[a[1].priority];
-      const rb = rankings[b[1].priority];
-      if (ra === rb) {
-        return b[1].createdAt - a[1].createdAt;
-      } else {
-        return ra - rb;
-      }
-    });
-
-    this.alertsSignal.update(() => {
-      return alerts;
-    });
-
-    this.mobSignal.update(() => {
-      return alerts.filter((i) => i[1].type === 'mob');
-    });
-
-    // update closest vessel ids
-    this.app.data.vessels.closest = alerts
-      .filter((i) => i[1].type === 'cpa')
-      .map((i) => i[1].properties?.vesselId);
-  }
-
-  /**
-   * @description Processes in-scope notification message
-   * @param msg notification message
-   */
-  private processMessage(msg: NotificationMessage) {
-    if (!msg.result) {
-      return;
-    }
-    this.parse(msg.result);
-  }
-
-  /**
-   * @description Parse the notification delta path & value
-   * @param msg Signal K path / value pair
-   */
-  private parse(msg: PathValue) {
-    const alertType = this.getAlertType(msg.path);
-
-    if (alertType === 'notification') {
-      // out-of-scope
-      return;
-    }
-
-    // check enabled in config
-    if (alertType === 'depth' && !this.app.config.display.depthAlarm.enabled) {
-      return;
-    }
-
-    // test for return to normal state
-    if (!msg.value || (msg.value as Notification)?.state === 'normal') {
-      if (this.alertMap.has(msg.path)) {
-        this.alertMap.delete(msg.path);
-        this.emitSignals();
-      }
-      return;
-    }
-
-    const alert: AlertData = this.alertMap.has(msg.path)
-      ? this.alertMap.get(msg.path)
-      : {
-          path: msg.path,
-          priority: ALARM_STATE.nominal,
-          message: '',
-          sound: false,
-          visual: true,
-          properties: {},
-          acknowledged: false,
-          silenced: false,
-          icon: {},
-          type: undefined,
-          canAcknowledge: true,
-          createdAt: Date.now()
-        };
-
-    alert.priority = (msg.value as Notification).state;
-    alert.message = (msg.value as Notification).message;
-    alert.sound = (msg.value as Notification).method.includes(
-      ALARM_METHOD.sound
-    );
-    alert.visual =
-      (msg.value as Notification).method.includes(ALARM_METHOD.visual) ||
-      ['perpendicularPassed', 'arrivalCircleEntered'].includes(alertType);
-    alert.canAcknowledge = ['emergency', 'alarm', 'warn'].includes(
-      alert.priority
-    );
-    alert.type = alertType;
-    alert.icon = getAlertIcon(alert);
-    alert.canCancel = this.isStandardAlarm(alert.type);
-
-    if ((msg.value as any).position) {
-      alert.properties.position = (msg.value as any).position;
-    }
-
-    if (['buddy'].includes(alertType)) {
-      // show toast message
-      this.app.showMessage(
-        alert.message,
-        !this.app.config.display.muteSound && alert.sound
+    // Attempt to "unlock" audio on first user interaction so play() won't be blocked by autoplay policy
+    try {
+      document.addEventListener(
+        'click',
+        () => {
+          try {
+            const t = this.audio;
+            const prevVolume = t.volume;
+            t.volume = 0;
+            t
+              .play()
+              .then(() => {
+                t.pause();
+                t.currentTime = 0;
+                t.volume = prevVolume ?? 1;
+              })
+              .catch(() => {
+                t.volume = prevVolume ?? 1;
+              });
+          } catch (e) {
+            // ignore
+          }
+        },
+        { once: true }
       );
-      return;
-    } else {
-      // alert
-      if (alert.type === 'cpa') {
-        alert.properties = this.parseCpa(msg.value);
+    } catch (e) {
+      // ignore in non-browser environments
+    }
+  }
+
+  // Return alerts as array of [path, AlertData]
+  public alerts(): Array<[string, AlertData]> {
+    return Array.from(this.alertMap.entries());
+  }
+
+  private emitSignals() {
+    try {
+      this.alertsSubject.next(this.alerts());
+    } catch (e) {
+      console.warn('NotificationManager.emitSignals error', e);
+    }
+  }
+
+  private playAlertSound() {
+    try {
+      if (!this.audio) return;
+      this.audio.currentTime = 0;
+      this.audio
+        .play()
+        .then(() => {
+          // played
+        })
+        .catch((err) => {
+          console.warn('Could not play alert sound (maybe autoplay blocked):', err);
+        });
+    } catch (error) {
+      console.error('Error playing alert sound:', error);
+    }
+  }
+
+  private addLocalAlert(path: string, alert: AlertData) {
+    this.alertMap.set(path, alert);
+    this.emitSignals();
+
+    try {
+      if (this.app.config?.notifications?.sound && alert.sound !== false) {
+        this.playAlertSound();
       }
-      this.alertMap.set(alert.path, alert);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  private removeLocalAlert(path: string) {
+    this.alertMap.delete(path);
+    this.emitSignals();
+  }
+
+  /**
+   * Raise Alarm on server.
+   * If the server responds 404 (endpoint not supported for this alarm type),
+   * create a local fallback alert so the UI still shows it and behavior is consistent.
+   */
+  public raiseServerAlarm(alarmType: string, message?: string) {
+    this.signalk.api
+      .post(this.app.skApiVersion, `alarms/${alarmType}`, {
+        message: message ?? ''
+      })
+      .subscribe(
+        (serverResp: any) => {
+          try {
+            const id =
+              (serverResp && (serverResp.id || serverResp.path || serverResp._id)) ||
+              `${alarmType}.${Date.now()}`;
+            const path = serverResp?.path || `${alarmType}.${id}`;
+            const now = Date.now();
+            const alert: AlertData = {
+              path,
+              priority: (serverResp?.priority ?? 2) as any,
+              message: serverResp?.message || message || '',
+              sound: true,
+              visual: true,
+              properties: serverResp?.properties || {},
+              icon: serverResp?.icon || { svgIcon: 'alarm' },
+              type: alarmType,
+              acknowledged: false,
+              silenced: false,
+              canAcknowledge: serverResp?.canAcknowledge ?? false,
+              canCancel: serverResp?.canCancel ?? true,
+              createdAt: serverResp?.createdAt || now
+            };
+
+            this.addLocalAlert(alert.path, alert);
+          } catch (e) {
+            console.warn('raiseServerAlarm: error processing server response', e);
+          }
+        },
+        (err: HttpErrorResponse) => {
+          if (err && err.status === 404) {
+            console.warn(
+              `Server alarm endpoint for '${alarmType}' not found — creating local fallback alert`
+            );
+
+            const now = Date.now();
+            const id = `${alarmType}.${now}`;
+            const fallbackAlert: AlertData = {
+              path: id,
+              priority: 2 as any,
+              message: message ?? '',
+              sound: true,
+              visual: true,
+              properties: {},
+              icon: { svgIcon: 'alarm' } as any,
+              type: alarmType,
+              acknowledged: false,
+              silenced: false,
+              canAcknowledge: false,
+              // cannot cancel on server; clear() will remove locally
+              canCancel: false,
+              createdAt: now
+            };
+
+            this.addLocalAlert(fallbackAlert.path, fallbackAlert);
+            return;
+          }
+
+          this.app.showAlert(
+            'Error',
+            `Unable to raise alarm: ${alarmType} \n ${err?.message ?? String(err)}`
+          );
+        }
+      );
+  }
+
+  public cancelServerAlarm(alert: AlertData) {
+    const id = alert.path.split('.').slice(-1)[0];
+    return this.signalk.api.delete(this.app.skApiVersion, `alarms/${alert.type}/${id}`);
+  }
+
+  public silence(path: string) {
+    if (!this.alertMap.has(path)) return;
+    const alert = this.alertMap.get(path);
+
+    if (this.isStandardAlarm(alert.type)) {
+      const id = alert.path.split('.').slice(-1)[0];
+      this.signalk.api
+        .post(this.app.skApiVersion, `alarms/${alert.type}/${id}/silence`, {})
+        .subscribe(
+          () => {
+            const a = { ...alert, silenced: true };
+            this.alertMap.set(path, a);
+            this.emitSignals();
+          },
+          (err: HttpErrorResponse) => {
+            this.app.showAlert('Error', `Unable to silence alarm (${path})!\n${err?.message ?? String(err)}`);
+          }
+        );
+    } else {
+      const a = { ...alert, silenced: true };
+      this.alertMap.set(path, a);
       this.emitSignals();
     }
   }
 
-  /**
-   * @description Returns the alert type
-   * @param path Alert path
-   */
-  private getAlertType(path: string): string {
-    const seg = path.split('.');
-    if (
-      this.isStandardAlarm(seg[1]) ||
-      path.includes('notifications.buddy') ||
-      path.includes('notifications.meteo.warning')
-    ) {
-      return seg[1];
-    } else if (path.includes('notifications.navigation.closestApproach')) {
-      return 'cpa';
-    } else if (
-      path.includes('notifications.environment.depth.') ||
-      path.includes('notifications.navigation.anchor')
-    ) {
-      return seg[2];
-    } else if (
-      path.includes('notifications.navigation.course.perpendicularPassed') ||
-      path.includes('notifications.navigation.course.arrivalCircleEntered')
-    ) {
-      return seg[3];
+  public clear(path: string) {
+    if (!this.alertMap.has(path)) return;
+    const alert = this.alertMap.get(path);
+
+    if (alert.canCancel && this.isStandardAlarm(alert.type)) {
+      this.cancelServerAlarm(alert).subscribe(
+        () => {
+          this.removeLocalAlert(path);
+        },
+        (err: HttpErrorResponse) => {
+          this.app.showAlert('Error', `Unable to clear alarm (${path})!\n${err?.message ?? String(err)}`);
+        }
+      );
     } else {
-      return 'notification';
+      this.removeLocalAlert(path);
     }
   }
 
-  /**
-   * @description Test if value is a Signal K standard alarm type
-   * @param value String representing the alarm type
-   * @returns true if value is a standard alarm
-   */
   private isStandardAlarm(value: string): boolean {
     return [
       'mob',
@@ -219,195 +256,58 @@ export class NotificationManager {
     ].includes(value);
   }
 
-  /**
-   * @description Returns Alert data for supplied path
-   * @param path Path of Alert
-   * @returns AlertData object
-   */
-  public getAlert(path: string): AlertData {
-    const al = this.alerts().find((i) => i[0] === path);
-    return al ? al[1] : undefined;
+  public getAlert(path: string): AlertData | undefined {
+    return this.alertMap.get(path);
   }
 
-  public showAlertInfo(path: string) {
-    if (!this.alertMap.has(path)) {
-      this.app.showAlert('Alert', 'Alert not found!');
-      return;
-    }
-    this.bottomSheet
-      .open(AlertPropertiesModal, {
-        data: { alert: this.getAlert(path) }
-      })
-      .afterDismissed()
-      .subscribe((action) => {
-        // some action
-      });
-  }
-
-  /**
-   * @description Acknowledge alert
-   * @param path Path of the the alert to acknowledge
-   */
   public acknowledge(path: string) {
     if (this.alertMap.has(path)) {
-      this.alertMap.get(path).acknowledged = true;
+      const a = { ...this.alertMap.get(path), acknowledged: true };
+      this.alertMap.set(path, a);
       this.emitSignals();
     }
   }
 
-  /**
-   * @description Silence alert
-   * @param path Path of the the alert to silence
-   */
-  public silence(path: string) {
-    if (this.alertMap.has(path)) {
-      const alert = this.alertMap.get(path);
-      if (this.isStandardAlarm(alert.type)) {
-        // if is standard alarm silence via server
-        const id = alert.path.split('.').slice(-1)[0];
-        this.signalk.api
-          .post(this.app.skApiVersion, `alarms/${alert.type}/${id}/silence`, {})
-          .subscribe(
-            () => {
-              alert.silenced = true;
-              this.emitSignals();
-            },
-            (err: HttpErrorResponse) => {
-              this.app.showAlert(
-                `Error`,
-                `Unable to silence alarm (${path})!`,
-                err.message
-              );
-            }
-          );
-      } else {
-        alert.silenced = true;
-        this.emitSignals();
-      }
-    }
+  public reset() {
+    this.alertMap.clear();
+    this.emitSignals();
   }
 
   /**
-   * @description Clear / Cancel alert
-   * @param path Path of the the alert to cancel
+   * Exposed helper used by templates (fb-map uses notiMgr.mobAlerts())
+   * Return list of alerts filtered to mob alarms (array of [path, AlertData])
    */
-  public clear(path: string) {
-    if (this.alertMap.has(path)) {
+  public mobAlerts(): Array<[string, AlertData]> {
+    return this.alerts().filter(([_, a]) => (a.type ?? '').toLowerCase() === 'mob');
+  }
+
+  /**
+   * Open bottom sheet showing alert details (used by app.component and templates)
+   */
+  public showAlertInfo(path: string) {
+      // Si l'alerte n'existe pas, afficher un message simple
+      if (!this.alertMap.has(path)) {
+        this.app.showAlert('Alert', 'Alert not found!');
+        return;
+      }
       const alert = this.alertMap.get(path);
 
-      if (alert.canCancel) {
-        if (this.isStandardAlarm(alert.type)) {
-          // if is standard alarm remove via server
-          this.cancelServerAlarm(alert).subscribe(
-            () => {
-              this.alertMap.delete(path);
-              this.emitSignals();
-            },
-            (err: HttpErrorResponse) => {
-              this.app.showAlert(
-                `Error`,
-                `Unable to clear alarm (${path})!`,
-                err.message
-              );
-            }
-          );
-        } else {
-          this.alertMap.delete(path);
-          this.emitSignals();
+      // Tentative d'ouvrir un bottom sheet si le modal est disponible au runtime
+      try {
+        // On essaye d'obtenir le composant par nom dynamiquement (best-effort)
+        // Remarque : si tu connais le bon composant/modal, remplace ce bloc par:
+        // this.bottomSheet.open(TheCorrectModalComponent, { data: { alert } });
+        const maybeModal: any = (this as any).__AlertPropertiesModal || null;
+        if (maybeModal && typeof maybeModal === 'function') {
+          this.bottomSheet.open(maybeModal, { data: { alert } });
+          return;
         }
+      } catch (e) {
+        // ignore et fallback vers app.showAlert
       }
+
+      // Fallback : afficher une boîte d'alerte simple avec le message et quelques props
+      const body = `${alert.message ?? ''}\n\nProperties: ${JSON.stringify(alert.properties ?? {}, null, 2)}`;
+      this.app.showAlert(`Alert: ${alert.type ?? 'unknown'}`, body);
     }
   }
-
-  /**
-   * @description Raise Alarm on server
-   * @param path Alarm type to raise
-   */
-  public raiseServerAlarm(alarmType: string, message?: string) {
-    this.signalk.api
-      .post(this.app.skApiVersion, `alarms/${alarmType}`, {
-        message: message ?? ''
-      })
-      .subscribe(
-        () => undefined,
-        (err: HttpErrorResponse) => {
-          // Si le serveur ne supporte pas ce type d'alarme (404), on crée une alerte locale de secours
-          if (err.status === 404) {
-            console.warn(`Server alarm endpoint for '${alarmType}' not found — creating local fallback alert`);
-
-            try {
-              // Générer un ID local unique
-              const id = `${alarmType}.${Date.now()}`;
-              const now = Date.now();
-
-              // Construire une alerte minimale conforme à AlertData utilisée par l'UI
-              const fallbackAlert: any = {
-                path: id,
-                priority: 2, // priorité par défaut (ajuste si besoin)
-                message: message ?? '',
-                sound: true,
-                visual: true,
-                properties: {
-                  // si tu veux ajouter une position par défaut, le faire ici
-                },
-                icon: { svgIcon: 'alarm' },
-                type: alarmType,
-                acknowledged: false,
-                silenced: false,
-                // IMPORTANT: canCancel false pour que clear() supprime localement (pas d'appel serveur)
-                canAcknowledge: false,
-                canCancel: false,
-                createdAt: now
-              };
-
-              // alertMap est utilisé ailleurs dans NotificationManager — on insère l'alerte locale
-              // (si alertMap n'existe pas pour une raison X, on le crée localement)
-              if (!(this as any).alertMap) {
-                (this as any).alertMap = new Map<string, any>();
-              }
-
-              (this as any).alertMap.set(id, fallbackAlert);
-
-              // Émettre la mise à jour pour que l'UI se rafraîchisse
-              if (typeof (this as any).emitSignals === 'function') {
-                (this as any).emitSignals();
-              } else {
-                // fallback: logger
-                console.debug('Fallback alert added but emitSignals not found.');
-              }
-            } catch (e) {
-              console.error('Failed to add fallback alert locally:', e);
-            }
-
-            return;
-          }
-
-          // comportement existant : afficher une erreur (pour autres statuts)
-          this.app.showAlert(
-            'Error',
-            `Unable to raise alarm: ${alarmType} \n ${err.message}`
-          );
-        }
-      );
-  }
-
-  /**
-   * @description Cancel Alarm on server
-   * @param alert Alarm to cancel
-   * @returns Observable
-   */
-  public cancelServerAlarm(alert: AlertData) {
-    const id = alert.path.split('.').slice(-1)[0];
-    return this.signalk.api.delete(
-      this.app.skApiVersion,
-      `alarms/${alert.type}/${id}`
-    );
-  }
-
-  // parse ClosestApproach message data
-  private parseCpa(msg: any) {
-    return {
-      vesselId: msg.other ?? undefined
-    };
-  }
-}

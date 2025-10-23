@@ -215,7 +215,7 @@ export class AlertComponent {
             this.hidden.set(true);
             clearInterval(this.timerRef);
           }
-        }, 100);
+        }, 9999999999);
       }
     });
   }

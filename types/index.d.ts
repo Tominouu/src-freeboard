@@ -92,6 +92,12 @@ export interface IAppConfig {
       course: string;
     };
   };
+  notifications?: {
+    sound?: boolean;
+    visual?: boolean;
+    [key: string]: any;
+  };
+
   map: {
     // ** map config
     zoomLevel: number;
@@ -150,6 +156,7 @@ export interface IAppConfig {
     // ** resource options
     fetchFilter: string; // param string to provide record filtering
     fetchRadius: number; // radius (NM/km) within which to return resources
+    loadRegionFromNotes?: boolean;
     notes: {
       rootFilter: string; // param string to provide record filtering
       getRadius: number; // radius (NM/km) within which to return notes

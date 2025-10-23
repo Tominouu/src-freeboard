@@ -11,6 +11,8 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
+// AJOUT: Importer MatCheckboxModule
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { SKRegion } from '../../resource-classes';
 import { CustomRegionsService } from '../../services/custom-regions.service';
 
@@ -26,7 +28,8 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
     MatInputModule,
     MatIconModule,
     MatButtonModule,
-    MatDialogModule
+    MatDialogModule,
+    MatCheckboxModule // AJOUT: Ajouter le module aux imports
   ],
   template: `
     <div class="_ap-region">
@@ -41,7 +44,6 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
 
       <mat-dialog-content>
         <div style="padding-left: 10px;">
-          <!-- Nom de la région -->
           <mat-form-field floatLabel="always">
             <mat-label>Name</mat-label>
             <input
@@ -57,7 +59,6 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
             }
           </mat-form-field>
 
-          <!-- Description -->
           <mat-form-field floatLabel="always" style="margin-top: 10px;">
             <mat-label>Description</mat-label>
             <textarea
@@ -69,7 +70,6 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
             ></textarea>
           </mat-form-field>
 
-          <!-- Couleur de la région -->
           <div style="margin-top: 20px;">
             <label style="display: block; margin-bottom: 8px; color: rgba(0,0,0,0.6); font-size: 12px;">
               Color
@@ -80,6 +80,12 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
               [disabled]="readOnly"
               style="width: 100px; height: 40px; cursor: pointer; border: 1px solid #ccc; border-radius: 4px;"
             />
+          </div>
+
+          <div style="margin-top: 20px;">
+            <mat-checkbox [(ngModel)]="alertEnabled" [disabled]="readOnly">
+              Déclencher une alerte à l'entrée
+            </mat-checkbox>
           </div>
         </div>
       </mat-dialog-content>
@@ -116,6 +122,7 @@ export class RegionDialog implements OnInit {
   protected name: string;
   protected description: string;
   protected color: string;
+  protected alertEnabled = false; // AJOUT: Propriété pour la case à cocher
   protected readOnly = false;
 
   constructor(
@@ -145,6 +152,9 @@ export class RegionDialog implements OnInit {
       // Récupérer le nom et la description du ResourceSet
       this.name = feature.name || this.name;
       this.description = feature.description || this.description;
+
+      // AJOUT: Charger la valeur de alertEnabled
+      this.alertEnabled = feature.values?.features?.[0]?.properties?.alertEnabled ?? false;
       
       console.log('Loading ResourceSet:', feature);
     } else {
@@ -158,11 +168,15 @@ export class RegionDialog implements OnInit {
       }
       
       this.color = existingColor ? this.extractHexColor(existingColor) : '#00ff00';
+
+      // AJOUT: Charger la valeur de alertEnabled
+      this.alertEnabled = props?.alertEnabled ?? false;
       
       console.log('Loading Feature:', feature);
     }
     
     console.log('Extracted color:', this.color);
+    console.log('Extracted alertEnabled:', this.alertEnabled); // AJOUT
   }
 
   // Extraire la couleur hexadécimale (sans l'opacité)
@@ -235,7 +249,8 @@ export class RegionDialog implements OnInit {
             {
               type: 'Feature',
               properties: { 
-                styleRef: styleName
+                styleRef: styleName,
+                alertEnabled: this.alertEnabled // AJOUT: Sauvegarder la propriété
               },
               geometry: geometry
             }

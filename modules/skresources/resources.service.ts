@@ -59,6 +59,7 @@ import {
 import { ActionResult, PathValue } from '@signalk/server-api';
 import { groupBy } from 'rxjs/operators';
 import { SKWorkerService } from '../skstream/skstream.service';
+import { CustomRegionsService } from './services/custom-regions.service';
 
 export type SKResourceType =
   | 'routes'

@@ -40,6 +40,9 @@ import {
   AutopilotService
 } from 'src/app/modules';
 
+// AJOUT: Importer le service d'alerte de région
+import { RegionAlertService } from './modules/skresources/services/region-alert.service';
+
 import {
   AboutDialog,
   LoginDialog,
@@ -182,7 +185,8 @@ export class AppComponent {
     private dialog: MatDialog,
     protected wakeLock: WakeLockService,
     private settings: SettingsFacade,
-    protected autopilot: AutopilotService
+    protected autopilot: AutopilotService,
+    private regionAlertService: RegionAlertService // AJOUT: Injecter le service
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
@@ -268,9 +272,16 @@ export class AppComponent {
     this.obsList.push(
       this.stream
         .delta$()
-        .subscribe((msg: NotificationMessage | UpdateMessage) =>
-          this.onMessage(msg)
-        )
+        // MODIFICATION: Appeler checkRegionAlerts à chaque mise à jour
+        .subscribe((msg: NotificationMessage | UpdateMessage) => {
+          this.onMessage(msg);
+          
+          // Vérifier les alertes de région si la position est disponible
+          if (this.app.data.vessels.self.position) {
+            console.log('Étape 1: Appel de checkRegionAlerts');
+            this.regionAlertService.checkRegionAlerts(this.app.data.vessels.self.position);
+          }
+        })
     );
     this.obsList.push(
       this.stream

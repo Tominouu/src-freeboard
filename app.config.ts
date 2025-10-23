@@ -166,6 +166,8 @@ export function cleanConfig(
       fetchFilter:
         '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
       fetchRadius: 0,
+      // *** MODIFICATION 1 (AJOUT) ***
+      loadRegionFromNotes: true,
       notes: {
         rootFilter:
           '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%',
@@ -197,6 +199,11 @@ export function cleanConfig(
     }
     if (typeof settings.resources.fetchRadius === 'undefined') {
       settings.resources.fetchRadius = 0;
+    }
+    
+    // *** MODIFICATION 2 (AJOUT DE CE BLOC IF) ***
+    if (typeof settings.resources.loadRegionFromNotes === 'undefined') {
+      settings.resources.loadRegionFromNotes = true;
     }
   }
 
@@ -275,7 +282,7 @@ export function cleanConfig(
   delete (settings as any).selections.wakeLock;
 
   /**
-   *  Remove notes selections
+   * Remove notes selections
    * @todo For removal (Applied 2.14.2)
    */
   delete (settings as any).selections.notes;
@@ -434,6 +441,7 @@ export function defaultConfig(): IAppConfig {
       fetchFilter:
         '?position=[%map:longitude%,%map:latitude%]&distance=%fetch:radius%',
       fetchRadius: 0, // radius (NM/km) within which to return resources
+      loadRegionFromNotes: true,
       notes: {
         rootFilter:
           '?position=[%map:longitude%,%map:latitude%]&distance=%note:radius%', // param string to provide record filtering

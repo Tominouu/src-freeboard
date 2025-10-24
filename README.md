@@ -16,6 +16,12 @@
 - `rm -rf ~/.signalk`
 - `npm cache clean --force`
 
+## Si vous ne pouvez pas build l'app:
+
+- Installez ng si ce n'est pas déjà fait: `npm install -g @angular/cli@latest`
+- Oubliez pas de faire un `npm install` la première fois ou si vous rajoutez des librairies
+- Ensuite normalement vous pourrez build: `npm run build:web`
+
 ## Pour mettre une webapp personnalisée (en particulier freeboard)
 
 - Dupliquez le dépot officiel: `git clone https://github.com/SignalK/freeboard-sk.git`

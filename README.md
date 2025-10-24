@@ -20,6 +20,7 @@
 
 - Installez ng si ce n'est pas déjà fait: `npm install -g @angular/cli@latest`
 - Oubliez pas de faire un `npm install` la première fois ou si vous rajoutez des librairies
+- Si il affiche qu'il y a un problème avec @turf/turf tapez cette commande: `npm install @turf/turf` 
 - Ensuite normalement vous pourrez build: `npm run build:web`
 
 ## Pour mettre une webapp personnalisée (en particulier freeboard)

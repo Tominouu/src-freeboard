@@ -69,8 +69,39 @@ if [ $? -eq 0 ]; then
 else
   echo "❌ Erreur lors de la copie du dossier."
   exit 1
-f
+fi
 ```
+
+- Maintenant que vous avez adapté le script selon vos noms de dossiers vous pouvez éxécuter le script:
+- `sudo chmod +x ./lenomduscript`
+- `./lenomducript`
+- Si il y a pas les autorisations: `sudo chown -R tom:tom ~/.signalk`
+
+- Il faut également ajouter à la racine du dossier freeboard-sk-dev le fichier *package.json*
+- `sudo nano package.json` remplacez par vos informations si vous avez donné d'autres noms
+
+```json
+{
+  "name": "@magellan/freeboard-sk-dev",
+  "version": "1.0.0",
+  "description": "Version de test",
+  "signalk": {
+    "appIcon": "couach.png",
+    "displayName": "Freeboard-SK Dev"
+  },
+  "keywords": ["signalk-webapp"],
+  "author": "Couach",
+  "license": "MIT",
+  "server": {
+    "http":{
+      "enableCors": true,
+      "allowedOrigins": ["http://127.0.0.1:3000"]
+    }
+  }
+}
+```
+
+- Et voilà, faut relancer le serveur: `sudo systemctl restart signalk.service` et maintenant votre web app apparait sur signalk
 
 
 

@@ -107,7 +107,7 @@ fi
 }
 ```
 
-- Et voilà, faut relancer le serveur: `sudo systemctl restart signalk.service` et maintenant votre web app apparait sur signalk
+- Et voilà, faut relancer le serveur: `sudo systemctl restart signalk.service` et maintenant votre web app apparait sur signalk.
 
 
 

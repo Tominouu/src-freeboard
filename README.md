@@ -23,6 +23,10 @@
 - Si il affiche qu'il y a un problème avec @turf/turf tapez cette commande: `npm install @turf/turf` 
 - Ensuite normalement vous pourrez build: `npm run build:web`
 
+## Si vous ne pouvez pas dessiner de régions:
+
+- Allez dans le **home signalk** ensuite dans le menu **Server** puis **Plugin Config** ensuite vous déroulez **Resources Provider**, vous avez une catégorie **Resources (custom)**, et vous pouvez ajouter une collection avec le bouton **+** et vous allez donner comme nom de collection **zones_alert**, cliquez sur submit et c'est bon
+
 ## Pour mettre une webapp personnalisée (en particulier freeboard)
 
 - Dupliquez le dépot officiel: `git clone https://github.com/SignalK/freeboard-sk.git`

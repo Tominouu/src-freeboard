@@ -42,6 +42,7 @@ import {
 
 // AJOUT: Importer le service d'alerte de région
 import { RegionAlertService } from './modules/skresources/services/region-alert.service';
+import { RegionAlertSoundService } from './modules/skresources/services/region-alert-sound.service';
 
 import {
   AboutDialog,
@@ -186,7 +187,8 @@ export class AppComponent {
     protected wakeLock: WakeLockService,
     private settings: SettingsFacade,
     protected autopilot: AutopilotService,
-    private regionAlertService: RegionAlertService // AJOUT: Injecter le service
+    private regionAlertService: RegionAlertService, // AJOUT: Injecter le service
+    protected regionSoundService: RegionAlertSoundService // AJOUT: Service pour les sons d'alerte
   ) {
     // set self to active vessel
     this.app.data.vessels.active = this.app.data.vessels.self;
@@ -431,6 +433,18 @@ export class AppComponent {
       }
       this.focusMap();
     }
+  }
+
+  /** Toggle region alert sound mute */
+  protected toggleRegionAlertMute() {
+    const currentMute = this.regionSoundService.isGlobalMuted();
+    this.regionSoundService.setGlobalMute(!currentMute);
+    this.focusMap();
+  }
+
+  /** Get region alert mute state */
+  protected isRegionAlertMuted(): boolean {
+    return this.regionSoundService.isGlobalMuted();
   }
 
   /** ************* */

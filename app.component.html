@@ -680,6 +680,29 @@
             </div>
             }
 
+            <!-- Region alert sound mute toggle -->
+            <div class="buttonPanelItem">
+              <button
+                mat-mini-fab
+                [ngClass]="{
+                  'button-primary': !isRegionAlertMuted(),
+                  'button-toolbar': isRegionAlertMuted()
+                }"
+                (click)="toggleRegionAlertMute()"
+                [matTooltip]="
+                  isRegionAlertMuted()
+                    ? 'Alertes sonores de région désactivées'
+                    : 'Alertes sonores de région activées'
+                "
+                matTooltipPosition="before"
+              >
+                <mat-icon>{{
+                  isRegionAlertMuted() ? 'notifications_off' : 'notifications_active'
+                }}</mat-icon>
+              </button>
+              <br />&nbsp;<br />
+            </div>
+
             <!-- constrain zoom to selected map(s) extent -->
             <div class="buttonPanelItem">
               <button

@@ -114,6 +114,60 @@ fi
 
 - Et voilà, faut relancer le serveur: `sudo systemctl restart signalk.service` et maintenant votre web app apparait sur signalk.
 
+## Alertes sonores par région
+
+Cette version améliore les alertes de régions avec des niveaux sonores différents selon la couleur de la région.
+
+### Fonctionnalités
+
+- **Trois niveaux d'alerte sonore** :
+  - **Faible (vert)** : Son court et doux (0.5s à volume 0.4)
+  - **Moyen (orange)** : Son moyen (1s à volume 0.7)
+  - **Fort (rouge)** : Son long et puissant (1.5s à volume 1.0)
+
+- **Configuration par région** :
+  - Lors de la création ou modification d'une région, vous pouvez :
+    - Activer/désactiver l'alerte à l'entrée
+    - Activer/désactiver l'alerte sonore
+    - Choisir le niveau d'alerte (Faible/Moyen/Fort)
+  - Par défaut, le niveau d'alerte est déduit de la couleur choisie
+
+- **Contrôle global** :
+  - Bouton dans la barre d'outils (icône cloche) pour couper/réactiver toutes les alertes sonores
+  - Le bouton est rouge quand les alertes sont activées, gris quand elles sont désactivées
+
+### Rétrocompatibilité
+
+Les régions créées avant cette mise à jour continuent de fonctionner :
+- Si aucun niveau d'alerte n'est défini, il est automatiquement déduit de la couleur
+- Vert → Faible, Orange → Moyen, Rouge → Fort
+
+### Personnalisation des sons
+
+Les fichiers audio par défaut se trouvent dans `assets/sounds/` :
+- `alert_low.mp3` : Alerte faible
+- `alert_medium.mp3` : Alerte moyenne
+- `alert_high.mp3` : Alerte forte
+
+Pour remplacer les sons par défaut, vous pouvez modifier ces fichiers (format MP3 recommandé).
+
+### Utilisation
+
+1. **Créer une région avec alerte sonore** :
+   - Dessinez une région sur la carte
+   - Dans la boîte de dialogue, choisissez une couleur
+   - Cochez "Déclencher une alerte à l'entrée"
+   - Cochez "Alerte sonore"
+   - Sélectionnez le niveau d'alerte souhaité (par défaut basé sur la couleur)
+
+2. **Activer/désactiver globalement** :
+   - Cliquez sur le bouton avec l'icône de cloche dans la barre d'outils à droite
+   - Quand il est rouge, les alertes sonores sont activées
+   - Quand il est gris, elles sont désactivées
+
+3. **Tester une alerte** :
+   - Naviguez (ou simulez une position) vers une région avec alerte activée
+   - Le son correspondant au niveau configuré sera joué à l'entrée dans la région
 
 
 

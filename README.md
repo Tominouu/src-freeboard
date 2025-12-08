@@ -114,6 +114,66 @@ fi
 
 - Et voilà, faut relancer le serveur: `sudo systemctl restart signalk.service` et maintenant votre web app apparait sur signalk.
 
+## Alertes sonores de régions
+
+### Fonctionnalité
+
+Les régions peuvent maintenant déclencher des alertes sonores avec différents niveaux d'intensité basés sur la couleur de la région :
+
+- **Vert** → Alerte faible (volume 40%)
+- **Orange** → Alerte moyenne (volume 70%)
+- **Rouge** → Alerte forte (volume 100%)
+
+### Configuration d'une région
+
+1. Créez ou modifiez une région
+2. Activez "Déclencher une alerte à l'entrée"
+3. Activez "Activer le son d'alerte" (nouvelle option)
+4. Sélectionnez le niveau d'alerte sonore :
+   - **Faible** : Son discret pour zones de faible importance
+   - **Moyen** : Son modéré pour zones d'attention standard
+   - **Fort** : Son fort pour zones critiques/dangereuses
+
+Le niveau est automatiquement inféré depuis la couleur de la région lors de la création, mais vous pouvez le modifier manuellement.
+
+### Sons personnalisés
+
+#### Remplacement des sons par défaut
+
+Les fichiers audio sont situés dans `assets/sounds/` :
+- `alert_small.ogg` / `alert_small.mp3` - Alerte faible
+- `alert_medium.ogg` / `alert_medium.mp3` - Alerte moyenne
+- `alert_large.ogg` / `alert_large.mp3` - Alerte forte
+
+Remplacez ces fichiers par vos propres sons (formats .ogg et .mp3 recommandés).
+
+#### Son personnalisé par région
+
+Vous pouvez spécifier un son personnalisé pour une région en ajoutant la propriété `customSoundUrl` dans les propriétés de la feature :
+
+```json
+{
+  "type": "Feature",
+  "properties": {
+    "alertEnabled": true,
+    "alertSoundEnabled": true,
+    "alertLevel": "high",
+    "customSoundUrl": "https://example.com/custom-alert.mp3"
+  }
+}
+```
+
+### Contrôle global du son
+
+Le paramètre global de désactivation du son (`doNotPlayAudio` dans la config) est respecté. Utilisez le bandeau d'alerte existant pour couper tous les sons d'alerte.
+
+### Debounce
+
+Un délai de 3 secondes est appliqué entre deux déclenchements pour une même région, évitant ainsi les alertes répétitives en cas de position GPS instable.
+
+### Migration automatique
+
+Les régions existantes sans niveau d'alerte configuré se verront attribuer un niveau automatiquement basé sur leur couleur lors du prochain chargement.
 
 
 

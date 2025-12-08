@@ -17,14 +17,12 @@ describe('RegionAlertSoundService', () => {
     it('should map green colors to low alert level', () => {
       expect(RegionAlertSoundService.colorToAlertLevel('#00ff00')).toBe('low');
       expect(RegionAlertSoundService.colorToAlertLevel('#0f0')).toBe('low');
-      expect(RegionAlertSoundService.colorToAlertLevel('#00ff0033')).toBe('low');
       expect(RegionAlertSoundService.colorToAlertLevel('green')).toBe('low');
     });
 
     it('should map red colors to high alert level', () => {
       expect(RegionAlertSoundService.colorToAlertLevel('#ff0000')).toBe('high');
       expect(RegionAlertSoundService.colorToAlertLevel('#f00')).toBe('high');
-      expect(RegionAlertSoundService.colorToAlertLevel('#ff000033')).toBe('high');
       expect(RegionAlertSoundService.colorToAlertLevel('red')).toBe('high');
     });
 

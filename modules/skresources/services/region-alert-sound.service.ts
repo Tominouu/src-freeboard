@@ -131,15 +131,13 @@ export class RegionAlertSoundService {
     
     // Check for green/vert
     if (normalized.includes('green') || normalized.includes('vert') || 
-        normalized.startsWith('#0') || normalized.startsWith('#00ff') || 
-        normalized.startsWith('#0f0') || normalized.startsWith('#00f')) {
+        normalized.startsWith('#00ff') || normalized.startsWith('#0f0')) {
       return 'low';
     }
     
     // Check for red/rouge
     if (normalized.includes('red') || normalized.includes('rouge') || 
-        normalized.startsWith('#f') || normalized.startsWith('#ff0000') || 
-        normalized.startsWith('#f00')) {
+        normalized.startsWith('#ff0000') || normalized.startsWith('#f00')) {
       return 'high';
     }
     
@@ -152,7 +150,13 @@ export class RegionAlertSoundService {
 
     // Parse hex colors more accurately
     if (normalized.startsWith('#')) {
-      const hex = normalized.slice(1, 7);
+      let hex = normalized.slice(1, 7);
+      
+      // Handle 3-digit hex codes by expanding them to 6 digits
+      if (hex.length === 3) {
+        hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      }
+      
       if (hex.length >= 6) {
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);

@@ -416,12 +416,31 @@ export class RegionAlertService {
   private extractColorFromProperties(properties?: any): string {
     if (!properties) return '#ffa500'; // default orange
 
-    // Try to find color in various property locations
-    const color = properties.stroke || properties.fill || 
-                  properties.strokeColor || properties.fillColor ||
-                  properties.style?.stroke || properties.style?.fill;
+    // Property names to check for color values (in order of preference)
+    const colorProps = [
+      'stroke',
+      'fill',
+      'strokeColor',
+      'fillColor'
+    ];
+
+    // Try to find color in direct properties
+    for (const prop of colorProps) {
+      if (properties[prop]) {
+        return properties[prop];
+      }
+    }
+
+    // Try to find color in style object
+    if (properties.style) {
+      for (const prop of colorProps) {
+        if (properties.style[prop]) {
+          return properties.style[prop];
+        }
+      }
+    }
     
-    return color || '#ffa500'; // default orange
+    return '#ffa500'; // default orange
   }
 
   private clearAlert(regionId: string) {

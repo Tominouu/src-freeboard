@@ -180,7 +180,7 @@ export class RegionDialog implements OnInit {
       // AJOUT: Charger alertSoundEnabled et alertLevel
       const props = feature.values?.features?.[0]?.properties;
       this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
-      this.alertLevel = props?.alertLevel ?? RegionAlertSoundService.colorToAlertLevel(this.color);
+      this.alertLevel = this.getAlertLevelFromProps(props);
       
       console.log('Loading ResourceSet:', feature);
     } else {
@@ -200,7 +200,7 @@ export class RegionDialog implements OnInit {
       
       // AJOUT: Charger alertSoundEnabled et alertLevel
       this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
-      this.alertLevel = props?.alertLevel ?? RegionAlertSoundService.colorToAlertLevel(this.color);
+      this.alertLevel = this.getAlertLevelFromProps(props);
       
       console.log('Loading Feature:', feature);
     }
@@ -240,6 +240,11 @@ export class RegionDialog implements OnInit {
     const g = parseInt(hex.slice(3, 5), 16);
     const b = parseInt(hex.slice(5, 7), 16);
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+  }
+
+  // Helper method to get alert level from properties with fallback to color
+  private getAlertLevelFromProps(props: any): AlertLevel {
+    return props?.alertLevel ?? RegionAlertSoundService.colorToAlertLevel(this.color);
   }
 
   handleClose(save: boolean) {

@@ -366,9 +366,14 @@ export class RegionAlertService {
     const alertSoundEnabled = properties?.alertSoundEnabled ?? false;
     
     // Get alert level (with backward compatibility)
-    let alertLevel: AlertLevel = properties?.alertLevel;
-    if (!alertLevel) {
-      // Backward compatibility: infer from color if alertLevel not present
+    const propAlertLevel = properties?.alertLevel;
+    let alertLevel: AlertLevel;
+    
+    // Validate and use property alertLevel if it's valid, otherwise infer from color
+    if (propAlertLevel === 'low' || propAlertLevel === 'medium' || propAlertLevel === 'high') {
+      alertLevel = propAlertLevel;
+    } else {
+      // Backward compatibility: infer from color if alertLevel not present or invalid
       const color = this.extractColorFromProperties(properties);
       alertLevel = RegionAlertSoundService.colorToAlertLevel(color);
     }

@@ -131,33 +131,33 @@ export class RegionAlertSoundService {
     
     // Check for green/vert
     if (normalized.includes('green') || normalized.includes('vert') || 
-        normalized.startsWith('#00ff') || normalized.startsWith('#0f0')) {
+        normalized === '#00ff00' || normalized === '#0f0') {
       return 'low';
     }
     
     // Check for red/rouge
     if (normalized.includes('red') || normalized.includes('rouge') || 
-        normalized.startsWith('#ff0000') || normalized.startsWith('#f00')) {
+        normalized === '#ff0000' || normalized === '#f00') {
       return 'high';
     }
     
     // Check for orange
     if (normalized.includes('orange') || 
-        normalized.startsWith('#ff8') || normalized.startsWith('#ffa') || 
-        normalized.startsWith('#f80') || normalized.startsWith('#fa0')) {
+        normalized === '#ffa500' || normalized === '#ff8800' || 
+        normalized === '#ff9900') {
       return 'medium';
     }
 
     // Parse hex colors more accurately
     if (normalized.startsWith('#')) {
-      let hex = normalized.slice(1, 7);
+      let hex = normalized.slice(1, 7).substring(0, 6);
       
       // Handle 3-digit hex codes by expanding them to 6 digits
       if (hex.length === 3) {
         hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
       }
       
-      if (hex.length >= 6) {
+      if (hex.length === 6) {
         const r = parseInt(hex.substring(0, 2), 16);
         const g = parseInt(hex.substring(2, 4), 16);
         const b = parseInt(hex.substring(4, 6), 16);

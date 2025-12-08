@@ -13,8 +13,11 @@ import {
 } from '@angular/material/dialog';
 // AJOUT: Importer MatCheckboxModule
 import { MatCheckboxModule } from '@angular/material/checkbox';
+// AJOUT: Importer MatSelectModule pour le niveau d'alerte
+import { MatSelectModule } from '@angular/material/select';
 import { SKRegion } from '../../resource-classes';
 import { CustomRegionsService } from '../../services/custom-regions.service';
+import { AlertLevel, RegionAlertSoundService } from '../../services/region-alert-sound.service';
 
 /********* RegionDialog **********
   data: {
@@ -29,7 +32,8 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
     MatIconModule,
     MatButtonModule,
     MatDialogModule,
-    MatCheckboxModule // AJOUT: Ajouter le module aux imports
+    MatCheckboxModule, // AJOUT: Ajouter le module aux imports
+    MatSelectModule // AJOUT: Ajouter MatSelectModule
   ],
   template: `
     <div class="_ap-region">
@@ -87,6 +91,21 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
               Déclencher une alerte à l'entrée
             </mat-checkbox>
           </div>
+
+          <div style="margin-top: 20px;">
+            <mat-checkbox [(ngModel)]="alertSoundEnabled" [disabled]="readOnly || !alertEnabled">
+              Alerte sonore
+            </mat-checkbox>
+          </div>
+
+          <mat-form-field floatLabel="always" style="margin-top: 10px;">
+            <mat-label>Niveau d'alerte</mat-label>
+            <mat-select [(ngModel)]="alertLevel" [disabled]="readOnly || !alertEnabled">
+              <mat-option value="low">Faible (vert)</mat-option>
+              <mat-option value="medium">Moyen (orange)</mat-option>
+              <mat-option value="high">Fort (rouge)</mat-option>
+            </mat-select>
+          </mat-form-field>
         </div>
       </mat-dialog-content>
 
@@ -123,6 +142,8 @@ export class RegionDialog implements OnInit {
   protected description: string;
   protected color: string;
   protected alertEnabled = false; // AJOUT: Propriété pour la case à cocher
+  protected alertSoundEnabled = false; // AJOUT: Propriété pour l'alerte sonore
+  protected alertLevel: AlertLevel = 'medium'; // AJOUT: Niveau d'alerte
   protected readOnly = false;
 
   constructor(
@@ -156,6 +177,11 @@ export class RegionDialog implements OnInit {
       // AJOUT: Charger la valeur de alertEnabled
       this.alertEnabled = feature.values?.features?.[0]?.properties?.alertEnabled ?? false;
       
+      // AJOUT: Charger alertSoundEnabled et alertLevel
+      const props = feature.values?.features?.[0]?.properties;
+      this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
+      this.alertLevel = this.getAlertLevelFromProps(props);
+      
       console.log('Loading ResourceSet:', feature);
     } else {
       // C'est une Feature classique
@@ -171,6 +197,10 @@ export class RegionDialog implements OnInit {
 
       // AJOUT: Charger la valeur de alertEnabled
       this.alertEnabled = props?.alertEnabled ?? false;
+      
+      // AJOUT: Charger alertSoundEnabled et alertLevel
+      this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
+      this.alertLevel = this.getAlertLevelFromProps(props);
       
       console.log('Loading Feature:', feature);
     }
@@ -212,6 +242,11 @@ export class RegionDialog implements OnInit {
     return `rgba(${r}, ${g}, ${b}, ${opacity})`;
   }
 
+  // Helper method to get alert level from properties with fallback to color
+  private getAlertLevelFromProps(props: any): AlertLevel {
+    return props?.alertLevel ?? RegionAlertSoundService.colorToAlertLevel(this.color);
+  }
+
   handleClose(save: boolean) {
     if (save) {
       this.data.region.name = this.name;
@@ -250,7 +285,9 @@ export class RegionDialog implements OnInit {
               type: 'Feature',
               properties: { 
                 styleRef: styleName,
-                alertEnabled: this.alertEnabled // AJOUT: Sauvegarder la propriété
+                alertEnabled: this.alertEnabled, // AJOUT: Sauvegarder la propriété
+                alertSoundEnabled: this.alertSoundEnabled, // AJOUT: Sauvegarder l'alerte sonore
+                alertLevel: this.alertLevel // AJOUT: Sauvegarder le niveau d'alerte
               },
               geometry: geometry
             }

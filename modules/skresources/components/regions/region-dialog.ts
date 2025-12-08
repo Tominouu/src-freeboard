@@ -11,10 +11,12 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-// AJOUT: Importer MatCheckboxModule
+// ADD: Import MatCheckboxModule and MatSelectModule
 import { MatCheckboxModule } from '@angular/material/checkbox';
+import { MatSelectModule } from '@angular/material/select';
 import { SKRegion } from '../../resource-classes';
 import { CustomRegionsService } from '../../services/custom-regions.service';
+import { AudioAlertService, AlertLevel } from '../../../alarms/services/audio-alert.service';
 
 /********* RegionDialog **********
   data: {
@@ -29,7 +31,8 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
     MatIconModule,
     MatButtonModule,
     MatDialogModule,
-    MatCheckboxModule // AJOUT: Ajouter le module aux imports
+    MatCheckboxModule, // ADD: Add the module to imports
+    MatSelectModule
   ],
   template: `
     <div class="_ap-region">
@@ -87,6 +90,25 @@ import { CustomRegionsService } from '../../services/custom-regions.service';
               Déclencher une alerte à l'entrée
             </mat-checkbox>
           </div>
+
+          @if(alertEnabled) {
+          <div style="margin-top: 20px;">
+            <mat-checkbox [(ngModel)]="alertSoundEnabled" [disabled]="readOnly">
+              Activer le son d'alerte
+            </mat-checkbox>
+          </div>
+
+          <div style="margin-top: 20px;">
+            <mat-form-field floatLabel="always">
+              <mat-label>Niveau d'alerte sonore</mat-label>
+              <mat-select [(ngModel)]="alertLevel" [disabled]="readOnly || !alertSoundEnabled">
+                <mat-option value="low">Faible (volume 40%)</mat-option>
+                <mat-option value="medium">Moyen (volume 70%)</mat-option>
+                <mat-option value="high">Fort (volume 100%)</mat-option>
+              </mat-select>
+            </mat-form-field>
+          </div>
+          }
         </div>
       </mat-dialog-content>
 
@@ -122,7 +144,9 @@ export class RegionDialog implements OnInit {
   protected name: string;
   protected description: string;
   protected color: string;
-  protected alertEnabled = false; // AJOUT: Propriété pour la case à cocher
+  protected alertEnabled = false; // ADD: Property for checkbox
+  protected alertSoundEnabled = false; // ADD: Property to enable sound
+  protected alertLevel: AlertLevel = 'medium'; // ADD: Sound alert level
   protected readOnly = false;
 
   constructor(
@@ -153,8 +177,13 @@ export class RegionDialog implements OnInit {
       this.name = feature.name || this.name;
       this.description = feature.description || this.description;
 
-      // AJOUT: Charger la valeur de alertEnabled
+      // ADD: Load alertEnabled value
       this.alertEnabled = feature.values?.features?.[0]?.properties?.alertEnabled ?? false;
+      
+      // ADD: Load alertSoundEnabled and alertLevel
+      const props = feature.values?.features?.[0]?.properties;
+      this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
+      this.alertLevel = props?.alertLevel || AudioAlertService.inferAlertLevelFromColor(this.color);
       
       console.log('Loading ResourceSet:', feature);
     } else {
@@ -169,14 +198,20 @@ export class RegionDialog implements OnInit {
       
       this.color = existingColor ? this.extractHexColor(existingColor) : '#00ff00';
 
-      // AJOUT: Charger la valeur de alertEnabled
+      // ADD: Load alertEnabled value
       this.alertEnabled = props?.alertEnabled ?? false;
+      
+      // ADD: Load alertSoundEnabled and alertLevel
+      this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
+      this.alertLevel = props?.alertLevel || AudioAlertService.inferAlertLevelFromColor(this.color);
       
       console.log('Loading Feature:', feature);
     }
     
     console.log('Extracted color:', this.color);
-    console.log('Extracted alertEnabled:', this.alertEnabled); // AJOUT
+    console.log('Extracted alertEnabled:', this.alertEnabled);
+    console.log('Extracted alertSoundEnabled:', this.alertSoundEnabled);
+    console.log('Extracted/inferred alertLevel:', this.alertLevel);
   }
 
   // Extraire la couleur hexadécimale (sans l'opacité)
@@ -250,7 +285,9 @@ export class RegionDialog implements OnInit {
               type: 'Feature',
               properties: { 
                 styleRef: styleName,
-                alertEnabled: this.alertEnabled // AJOUT: Sauvegarder la propriété
+                alertEnabled: this.alertEnabled, // ADD: Save the property
+                alertSoundEnabled: this.alertSoundEnabled, // ADD: Save the sound
+                alertLevel: this.alertLevel // ADD: Save the level
               },
               geometry: geometry
             }

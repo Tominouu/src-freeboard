@@ -6,6 +6,7 @@ import { CustomRegionsService } from './custom-regions.service';
 import { Position } from 'geojson';
 import { point, polygon, booleanPointInPolygon } from '@turf/turf';
 import { Subscription } from 'rxjs';
+import { AudioAlertService, AlertLevel } from '../../alarms/services/audio-alert.service';
 
 interface RegionAlertState {
   regionId: string;
@@ -25,7 +26,8 @@ export class RegionAlertService {
     private app: AppFacade,
     private skres: SKResourceService,
     private notiMgr: NotificationManager,
-    private customRegionsService: CustomRegionsService
+    private customRegionsService: CustomRegionsService,
+    private audioAlertService: AudioAlertService
   ) {
 
     // Charger les resourceSets custom dès que possible (non bloquant)
@@ -244,7 +246,7 @@ export class RegionAlertService {
 
       console.log(`Étape 4: Région '${regionName}' -> isInside: ${isInside}`);
 
-      this.handleRegionAlert(regionId, regionName, isInside);
+      this.handleRegionAlert(regionId, regionName, isInside, properties);
     });
   }
 
@@ -336,7 +338,7 @@ export class RegionAlertService {
     return [aNum, bNum];
   }
 
-  private handleRegionAlert(regionId: string, regionName: string, isInside: boolean) {
+  private handleRegionAlert(regionId: string, regionName: string, isInside: boolean, properties?: any) {
     const state =
       this.regionStates.get(regionId) || ({
         regionId,
@@ -345,7 +347,7 @@ export class RegionAlertService {
       } as RegionAlertState);
 
     if (isInside && !state.isInside) {
-      this.triggerAlert(regionId, regionName);
+      this.triggerAlert(regionId, regionName, properties);
       state.hasAlerted = true;
     } else if (!isInside && state.isInside && state.hasAlerted) {
       this.clearAlert(regionId);
@@ -356,16 +358,33 @@ export class RegionAlertService {
     this.regionStates.set(regionId, state);
   }
 
-  private triggerAlert(regionId: string, regionName: string) {
+  private triggerAlert(regionId: string, regionName: string, properties?: any) {
     console.log(`%cÉtape 5: !!! DÉCLENCHEMENT ALERTE POUR ${regionName} !!!`, 'color: red; font-size: 1.2em; font-weight: bold;');
     const message = `Entering region: ${regionName}`;
+
+    // Extract alert configuration from properties
+    const alertSoundEnabled = properties?.alertSoundEnabled ?? false;
+    const alertLevel: AlertLevel = properties?.alertLevel || 'medium';
+    const customSoundUrl = properties?.customSoundUrl;
+
+    // Play sound if enabled
+    if (alertSoundEnabled) {
+      // Check for global mute setting
+      const globalMute = this.app.config?.plugins?.doNotPlayAudio ?? false;
+      console.log(`[RegionAlert] Playing ${alertLevel} sound for region ${regionId} (globalMute: ${globalMute})`);
+      
+      this.audioAlertService.playAlert(alertLevel, regionId, customSoundUrl, globalMute)
+        .catch(err => console.error('Failed to play region alert sound:', err));
+    } else {
+      console.log(`[RegionAlert] Sound disabled for region ${regionId}`);
+    }
 
     // Créer une alerte locale avec son activé
     const alert: any = {
       path: `region.${regionId}`,
       priority: 'warn', // ou 'warn'
       message: message,
-      sound: true, // Important : activer le son
+      sound: alertSoundEnabled, // Important : activer le son selon config
       visual: true,
       acknowledged: false,
       silenced: false,
@@ -374,7 +393,8 @@ export class RegionAlertService {
       canCancel: true,
       properties: {
         regionId: regionId,
-        regionName: regionName
+        regionName: regionName,
+        alertLevel: alertLevel
       },
       icon: {
         class: undefined,

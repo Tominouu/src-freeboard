@@ -6,6 +6,7 @@ import { CustomRegionsService } from './custom-regions.service';
 import { Position } from 'geojson';
 import { point, polygon, booleanPointInPolygon } from '@turf/turf';
 import { Subscription } from 'rxjs';
+import { RegionAlertSoundService, AlertLevel } from './region-alert-sound.service';
 
 interface RegionAlertState {
   regionId: string;
@@ -25,7 +26,8 @@ export class RegionAlertService {
     private app: AppFacade,
     private skres: SKResourceService,
     private notiMgr: NotificationManager,
-    private customRegionsService: CustomRegionsService
+    private customRegionsService: CustomRegionsService,
+    private soundService: RegionAlertSoundService
   ) {
 
     // Charger les resourceSets custom dès que possible (non bloquant)
@@ -244,7 +246,7 @@ export class RegionAlertService {
 
       console.log(`Étape 4: Région '${regionName}' -> isInside: ${isInside}`);
 
-      this.handleRegionAlert(regionId, regionName, isInside);
+      this.handleRegionAlert(regionId, regionName, isInside, properties);
     });
   }
 
@@ -336,7 +338,7 @@ export class RegionAlertService {
     return [aNum, bNum];
   }
 
-  private handleRegionAlert(regionId: string, regionName: string, isInside: boolean) {
+  private handleRegionAlert(regionId: string, regionName: string, isInside: boolean, properties?: any) {
     const state =
       this.regionStates.get(regionId) || ({
         regionId,
@@ -345,7 +347,7 @@ export class RegionAlertService {
       } as RegionAlertState);
 
     if (isInside && !state.isInside) {
-      this.triggerAlert(regionId, regionName);
+      this.triggerAlert(regionId, regionName, properties);
       state.hasAlerted = true;
     } else if (!isInside && state.isInside && state.hasAlerted) {
       this.clearAlert(regionId);
@@ -356,9 +358,27 @@ export class RegionAlertService {
     this.regionStates.set(regionId, state);
   }
 
-  private triggerAlert(regionId: string, regionName: string) {
+  private triggerAlert(regionId: string, regionName: string, properties?: any) {
     console.log(`%cÉtape 5: !!! DÉCLENCHEMENT ALERTE POUR ${regionName} !!!`, 'color: red; font-size: 1.2em; font-weight: bold;');
     const message = `Entering region: ${regionName}`;
+
+    // Check if sound alert is enabled for this region
+    const alertSoundEnabled = properties?.alertSoundEnabled ?? false;
+    
+    // Get alert level (with backward compatibility)
+    let alertLevel: AlertLevel = properties?.alertLevel;
+    if (!alertLevel) {
+      // Backward compatibility: infer from color if alertLevel not present
+      const color = this.extractColorFromProperties(properties);
+      alertLevel = RegionAlertSoundService.colorToAlertLevel(color);
+    }
+
+    // Play region-specific sound if enabled
+    if (alertSoundEnabled) {
+      this.soundService.playAlert(alertLevel).catch(err => {
+        console.error('Error playing region alert sound:', err);
+      });
+    }
 
     // Créer une alerte locale avec son activé
     const alert: any = {
@@ -374,7 +394,9 @@ export class RegionAlertService {
       canCancel: true,
       properties: {
         regionId: regionId,
-        regionName: regionName
+        regionName: regionName,
+        alertLevel: alertLevel,
+        alertSoundEnabled: alertSoundEnabled
       },
       icon: {
         class: undefined,
@@ -386,6 +408,20 @@ export class RegionAlertService {
 
     // Utiliser createLocalAlert du NotificationManager pour gérer le son
     this.notiMgr.createLocalAlert(`region.${regionId}`, alert);
+  }
+
+  /**
+   * Extract color from properties for backward compatibility
+   */
+  private extractColorFromProperties(properties?: any): string {
+    if (!properties) return '#ffa500'; // default orange
+
+    // Try to find color in various property locations
+    const color = properties.stroke || properties.fill || 
+                  properties.strokeColor || properties.fillColor ||
+                  properties.style?.stroke || properties.style?.fill;
+    
+    return color || '#ffa500'; // default orange
   }
 
   private clearAlert(regionId: string) {

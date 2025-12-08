@@ -370,8 +370,9 @@ export class RegionAlertService {
     let alertLevel: AlertLevel;
     
     // Validate and use property alertLevel if it's valid, otherwise infer from color
-    if (propAlertLevel === 'low' || propAlertLevel === 'medium' || propAlertLevel === 'high') {
-      alertLevel = propAlertLevel;
+    const validLevels: AlertLevel[] = ['low', 'medium', 'high'];
+    if (propAlertLevel && validLevels.includes(propAlertLevel as AlertLevel)) {
+      alertLevel = propAlertLevel as AlertLevel;
     } else {
       // Backward compatibility: infer from color if alertLevel not present or invalid
       const color = this.extractColorFromProperties(properties);

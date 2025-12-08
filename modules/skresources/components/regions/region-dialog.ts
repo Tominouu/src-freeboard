@@ -100,7 +100,7 @@ import { AlertLevel, RegionAlertSoundService } from '../../services/region-alert
 
           <mat-form-field floatLabel="always" style="margin-top: 10px;">
             <mat-label>Niveau d'alerte</mat-label>
-            <mat-select [(ngModel)]="alertLevel" [disabled]="readOnly || !alertEnabled || !alertSoundEnabled">
+            <mat-select [(ngModel)]="alertLevel" [disabled]="readOnly || !alertEnabled">
               <mat-option value="low">Faible (vert)</mat-option>
               <mat-option value="medium">Moyen (orange)</mat-option>
               <mat-option value="high">Fort (rouge)</mat-option>

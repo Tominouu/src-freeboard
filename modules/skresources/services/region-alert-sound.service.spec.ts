@@ -48,6 +48,23 @@ describe('RegionAlertSoundService', () => {
       // High red, medium green, low blue -> medium (orange-like)
       expect(RegionAlertSoundService.colorToAlertLevel('#ff8000')).toBe('medium');
     });
+
+    it('should handle hex colors with alpha channel', () => {
+      // Colors with alpha should ignore the alpha and parse correctly
+      expect(RegionAlertSoundService.colorToAlertLevel('#ff000080')).toBe('high');
+      expect(RegionAlertSoundService.colorToAlertLevel('#00ff00ff')).toBe('low');
+      expect(RegionAlertSoundService.colorToAlertLevel('#ffa50033')).toBe('medium');
+    });
+
+    it('should handle invalid hex colors gracefully', () => {
+      // Invalid hex characters should default to medium
+      expect(RegionAlertSoundService.colorToAlertLevel('#gggggg')).toBe('medium');
+      expect(RegionAlertSoundService.colorToAlertLevel('#xyz')).toBe('medium');
+      
+      // Invalid lengths should default to medium
+      expect(RegionAlertSoundService.colorToAlertLevel('#ff')).toBe('medium');
+      expect(RegionAlertSoundService.colorToAlertLevel('#12345')).toBe('medium');
+    });
   });
 
   describe('global mute', () => {

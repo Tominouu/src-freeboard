@@ -150,30 +150,44 @@ export class RegionAlertSoundService {
 
     // Parse hex colors more accurately
     if (normalized.startsWith('#')) {
-      let hex = normalized.slice(1, 7).substring(0, 6);
+      let hex = normalized.slice(1);
+      
+      // Validate hex contains only valid characters
+      if (!/^[0-9a-f]+$/i.test(hex)) {
+        return 'medium'; // Invalid hex color, default to medium
+      }
       
       // Handle 3-digit hex codes by expanding them to 6 digits
       if (hex.length === 3) {
         hex = hex[0] + hex[0] + hex[1] + hex[1] + hex[2] + hex[2];
+      } else if (hex.length > 6) {
+        // Truncate to 6 characters (ignore alpha channel)
+        hex = hex.substring(0, 6);
+      } else if (hex.length !== 6) {
+        // Invalid length (not 3 or 6), default to medium
+        return 'medium';
       }
       
-      if (hex.length === 6) {
-        const r = parseInt(hex.substring(0, 2), 16);
-        const g = parseInt(hex.substring(2, 4), 16);
-        const b = parseInt(hex.substring(4, 6), 16);
-        
-        // Green dominant
-        if (g > r && g > b && g > 150) {
-          return 'low';
-        }
-        // Red dominant
-        if (r > g && r > b && r > 150) {
-          return 'high';
-        }
-        // Orange (red and green, low blue)
-        if (r > 150 && g > 100 && g < 200 && b < 100) {
-          return 'medium';
-        }
+      const r = parseInt(hex.substring(0, 2), 16);
+      const g = parseInt(hex.substring(2, 4), 16);
+      const b = parseInt(hex.substring(4, 6), 16);
+      
+      // Validate parsed values are valid numbers
+      if (isNaN(r) || isNaN(g) || isNaN(b)) {
+        return 'medium';
+      }
+      
+      // Green dominant
+      if (g > r && g > b && g > 150) {
+        return 'low';
+      }
+      // Red dominant
+      if (r > g && r > b && r > 150) {
+        return 'high';
+      }
+      // Orange (red and green, low blue)
+      if (r > 150 && g > 100 && g < 200 && b < 100) {
+        return 'medium';
       }
     }
     

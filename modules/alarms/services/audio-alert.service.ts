@@ -2,14 +2,8 @@ import { Injectable } from '@angular/core';
 
 export type AlertLevel = 'low' | 'medium' | 'high';
 
-interface RegionDebounce {
-  regionId: string;
-  lastPlayed: number;
-}
-
 @Injectable({ providedIn: 'root' })
 export class AudioAlertService {
-  private audioContext: AudioContext | null = null;
   private debounceMap = new Map<string, number>();
   private readonly DEBOUNCE_MS = 3000; // 3 seconds
   
@@ -25,16 +19,7 @@ export class AudioAlertService {
     high: 1.0
   };
 
-  constructor() {
-    // Initialize AudioContext on first user interaction
-    if (typeof AudioContext !== 'undefined') {
-      try {
-        this.audioContext = new AudioContext();
-      } catch (e) {
-        console.warn('AudioContext not available:', e);
-      }
-    }
-  }
+  constructor() {}
 
   /**
    * Play alert sound for the specified level
@@ -98,26 +83,35 @@ export class AudioAlertService {
       audio.volume = volume;
       audio.src = url;
       
-      audio.addEventListener('canplaythrough', () => {
+      const playAudioWhenReady = () => {
         audio.play()
           .then(() => resolve())
-          .catch((err) => {
-            console.warn(`Failed to play ${url}, trying fallback`, err);
-            // Try .mp3 fallback if .ogg fails
-            if (url.endsWith('.ogg')) {
-              const mp3Url = url.replace('.ogg', '.mp3');
-              audio.src = mp3Url;
-              audio.play()
-                .then(() => resolve())
-                .catch((fallbackErr) => reject(fallbackErr));
-            } else {
-              reject(err);
-            }
-          });
-      }, { once: true });
+          .catch((err) => reject(err));
+      };
+      
+      audio.addEventListener('canplaythrough', playAudioWhenReady, { once: true });
       
       audio.addEventListener('error', (err) => {
-        reject(new Error(`Failed to load audio: ${url}`));
+        // Try .mp3 fallback if .ogg fails
+        if (url.endsWith('.ogg')) {
+          console.warn(`Failed to load ${url}, trying .mp3 fallback`);
+          const mp3Url = url.replace('.ogg', '.mp3');
+          const fallbackAudio = new Audio();
+          fallbackAudio.volume = volume;
+          fallbackAudio.src = mp3Url;
+          
+          fallbackAudio.addEventListener('canplaythrough', () => {
+            fallbackAudio.play()
+              .then(() => resolve())
+              .catch((fallbackErr) => reject(fallbackErr));
+          }, { once: true });
+          
+          fallbackAudio.addEventListener('error', () => {
+            reject(new Error(`Failed to load both audio formats: ${url}, ${mp3Url}`));
+          }, { once: true });
+        } else {
+          reject(new Error(`Failed to load audio: ${url}`));
+        }
       }, { once: true });
       
       // Fallback timeout

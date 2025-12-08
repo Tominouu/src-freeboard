@@ -11,7 +11,7 @@ import {
   MatDialogRef,
   MAT_DIALOG_DATA
 } from '@angular/material/dialog';
-// AJOUT: Importer MatCheckboxModule et MatSelectModule
+// ADD: Import MatCheckboxModule and MatSelectModule
 import { MatCheckboxModule } from '@angular/material/checkbox';
 import { MatSelectModule } from '@angular/material/select';
 import { SKRegion } from '../../resource-classes';
@@ -31,7 +31,7 @@ import { AudioAlertService, AlertLevel } from '../../../alarms/services/audio-al
     MatIconModule,
     MatButtonModule,
     MatDialogModule,
-    MatCheckboxModule, // AJOUT: Ajouter le module aux imports
+    MatCheckboxModule, // ADD: Add the module to imports
     MatSelectModule
   ],
   template: `
@@ -144,9 +144,9 @@ export class RegionDialog implements OnInit {
   protected name: string;
   protected description: string;
   protected color: string;
-  protected alertEnabled = false; // AJOUT: Propriété pour la case à cocher
-  protected alertSoundEnabled = false; // AJOUT: Propriété pour activer le son
-  protected alertLevel: AlertLevel = 'medium'; // AJOUT: Niveau d'alerte sonore
+  protected alertEnabled = false; // ADD: Property for checkbox
+  protected alertSoundEnabled = false; // ADD: Property to enable sound
+  protected alertLevel: AlertLevel = 'medium'; // ADD: Sound alert level
   protected readOnly = false;
 
   constructor(
@@ -177,10 +177,10 @@ export class RegionDialog implements OnInit {
       this.name = feature.name || this.name;
       this.description = feature.description || this.description;
 
-      // AJOUT: Charger la valeur de alertEnabled
+      // ADD: Load alertEnabled value
       this.alertEnabled = feature.values?.features?.[0]?.properties?.alertEnabled ?? false;
       
-      // AJOUT: Charger alertSoundEnabled et alertLevel
+      // ADD: Load alertSoundEnabled and alertLevel
       const props = feature.values?.features?.[0]?.properties;
       this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
       this.alertLevel = props?.alertLevel || AudioAlertService.inferAlertLevelFromColor(this.color);
@@ -198,10 +198,10 @@ export class RegionDialog implements OnInit {
       
       this.color = existingColor ? this.extractHexColor(existingColor) : '#00ff00';
 
-      // AJOUT: Charger la valeur de alertEnabled
+      // ADD: Load alertEnabled value
       this.alertEnabled = props?.alertEnabled ?? false;
       
-      // AJOUT: Charger alertSoundEnabled et alertLevel
+      // ADD: Load alertSoundEnabled and alertLevel
       this.alertSoundEnabled = props?.alertSoundEnabled ?? false;
       this.alertLevel = props?.alertLevel || AudioAlertService.inferAlertLevelFromColor(this.color);
       
@@ -209,7 +209,7 @@ export class RegionDialog implements OnInit {
     }
     
     console.log('Extracted color:', this.color);
-    console.log('Extracted alertEnabled:', this.alertEnabled); // AJOUT
+    console.log('Extracted alertEnabled:', this.alertEnabled);
     console.log('Extracted alertSoundEnabled:', this.alertSoundEnabled);
     console.log('Extracted/inferred alertLevel:', this.alertLevel);
   }
@@ -285,9 +285,9 @@ export class RegionDialog implements OnInit {
               type: 'Feature',
               properties: { 
                 styleRef: styleName,
-                alertEnabled: this.alertEnabled, // AJOUT: Sauvegarder la propriété
-                alertSoundEnabled: this.alertSoundEnabled, // AJOUT: Sauvegarder le son
-                alertLevel: this.alertLevel // AJOUT: Sauvegarder le niveau
+                alertEnabled: this.alertEnabled, // ADD: Save the property
+                alertSoundEnabled: this.alertSoundEnabled, // ADD: Save the sound
+                alertLevel: this.alertLevel // ADD: Save the level
               },
               geometry: geometry
             }

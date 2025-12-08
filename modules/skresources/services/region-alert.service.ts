@@ -379,12 +379,12 @@ export class RegionAlertService {
       console.log(`[RegionAlert] Sound disabled for region ${regionId}`);
     }
 
-    // Créer une alerte locale avec son activé
+    // Create local alert with sound enabled
     const alert: any = {
       path: `region.${regionId}`,
-      priority: 'warn', // ou 'warn'
+      priority: 'warn',
       message: message,
-      sound: alertSoundEnabled, // Important : activer le son selon config
+      sound: alertSoundEnabled, // Important: enable sound according to config
       visual: true,
       acknowledged: false,
       silenced: false,
